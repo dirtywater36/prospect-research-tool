@@ -6,25 +6,29 @@
         body {
             font-family: Arial, sans-serif;
             margin: 40px;
+            background-color: #f5f5f5;
         }
         .container {
-            max-width: 800px;
+            max-width: 1000px;
             margin: 0 auto;
         }
         .upload-section {
-            border: 2px dashed #ccc;
+            background-color: white;
+            border-radius: 8px;
             padding: 20px;
-            text-align: center;
             margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-        .results-section {
-            margin-top: 20px;
+        .results-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
         }
-        .result-card {
-            border: 1px solid #eee;
-            padding: 15px;
-            margin-bottom: 10px;
-            border-radius: 5px;
+        .research-section, .email-section {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         .status {
             margin: 10px 0;
@@ -39,32 +43,70 @@
             background-color: #f2dede;
             color: #a94442;
         }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        h1, h2 {
+            color: #333;
+        }
+        .email-template {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 10px;
+            white-space: pre-line;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Prospect Research Tool</h1>
+        
         <div class="upload-section">
             <h2>Upload CSV File</h2>
             <input type="file" id="csvFile" accept=".csv">
             <button onclick="handleFileUpload()">Process File</button>
+            <div id="upload-status"></div>
         </div>
-        <div class="results-section" id="results">
-            <!-- Results will be displayed here -->
+
+        <div class="results-container">
+            <div class="research-section">
+                <h2>Research Results</h2>
+                <div id="research-results">
+                    <!-- Research results will be displayed here -->
+                </div>
+            </div>
+
+            <div class="email-section">
+                <h2>Generated Email</h2>
+                <div id="email-content" class="email-template">
+                    <!-- Email content will be displayed here -->
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
         function handleFileUpload() {
             const fileInput = document.getElementById('csvFile');
-            const resultsDiv = document.getElementById('results');
+            const uploadStatus = document.getElementById('upload-status');
+            const researchResults = document.getElementById('research-results');
+            const emailContent = document.getElementById('email-content');
             
             if (!fileInput.files[0]) {
                 alert('Please select a file first!');
                 return;
             }
 
-            resultsDiv.innerHTML = '<div class="status">Uploading file...</div>';
+            uploadStatus.innerHTML = '<div class="status">Uploading file...</div>';
 
             const file = fileInput.files[0];
             const reader = new FileReader();
@@ -85,30 +127,46 @@
                     console.log('Response:', responseText);
                     
                     if (response.ok) {
-    resultsDiv.innerHTML = '<div class="status success">File uploaded successfully to S3!</div>';
-    
-    // Optional: Add a link to download or view the file
-    const downloadSection = document.createElement('div');
-    downloadSection.innerHTML = `
-        <div class="status">
-            Your file has been uploaded. 
-            <br>
-            You can check the S3 bucket 'prospecting-input-data-9-9' to see your file.
-        </div>
-    `;
-    resultsDiv.appendChild(downloadSection);
-} else {
-                        resultsDiv.innerHTML = `<div class="status error">Error: ${responseText}</div>`;
+                        uploadStatus.innerHTML = '<div class="status success">File processed successfully!</div>';
+                        
+                        // Example research results - replace with actual data
+                        researchResults.innerHTML = `
+                            <strong>Company:</strong> XYZ Corp<br>
+                            <strong>Industry:</strong> Technology<br>
+                            <strong>Revenue:</strong> $50M<br>
+                            <strong>Employees:</strong> 250<br>
+                            <strong>Key Decision Maker:</strong> John Smith<br>
+                            <strong>LinkedIn:</strong> <a href="#">View Profile</a><br>
+                            <strong>Recent News:</strong> Recently expanded to Europe
+                        `;
+
+                        // Example email template - replace with actual template
+                        emailContent.innerHTML = `
+Subject: Partnership Opportunity with [Your Company]
+
+Dear [Name],
+
+I hope this email finds you well. I recently came across XYZ Corp and was impressed by your recent expansion into the European market.
+
+I believe there's a great opportunity for collaboration between our companies, particularly in the technology sector.
+
+Would you be open to a brief conversation about how we might work together?
+
+Best regards,
+[Your Name]
+                        `;
+                    } else {
+                        uploadStatus.innerHTML = `<div class="status error">Error: ${responseText}</div>`;
                     }
                 } catch (error) {
                     console.error('Error:', error);
-                    resultsDiv.innerHTML = `<div class="status error">Error: ${error.message}</div>`;
+                    uploadStatus.innerHTML = `<div class="status error">Error: ${error.message}</div>`;
                 }
             };
 
             reader.onerror = function(error) {
                 console.error('Error:', error);
-                resultsDiv.innerHTML = `<div class="status error">Error reading file: ${error}</div>`;
+                uploadStatus.innerHTML = `<div class="status error">Error reading file: ${error}</div>`;
             };
 
             reader.readAsDataURL(file);
