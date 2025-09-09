@@ -95,7 +95,7 @@
     </div>
 
     <script>
-    async function handleFileUpload() {
+async function handleFileUpload() {
     const fileInput = document.getElementById('csvFile');
     const uploadStatus = document.getElementById('upload-status');
     const researchResults = document.getElementById('research-results');
@@ -113,7 +113,8 @@
 
     reader.onload = async function(e) {
         const base64Data = e.target.result.split(',')[1];
-        const BATCH_SIZE = 3; // Process 3 rows at a time
+        const BATCH_SIZE = 2; // Reduced batch size
+        const DELAY_BETWEEN_BATCHES = 5000; // 5 second delay between batches
 
         try {
             // First, get all rows
@@ -124,6 +125,8 @@
 
             let allResults = [];
             let processedCount = 0;
+            let retryCount = 0;
+            const MAX_RETRIES = 3;
 
             // Process in batches
             for (let i = 0; i < dataRows.length; i += BATCH_SIZE) {
@@ -131,30 +134,50 @@
                 const batchData = headerRow + '\n' + batch.join('\n');
                 const batchBase64 = btoa(batchData);
 
-                try {
-                    const response = await fetch('https://fboyzgif8d.execute-api.us-east-1.amazonaws.com/prod/upload', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify(batchBase64)
-                    });
-                    
-                    const responseData = await response.json();
-                    
-                    if (response.ok && responseData.results) {
-                        allResults = allResults.concat(responseData.results);
-                        processedCount += batch.length;
-                        uploadStatus.innerHTML = `<div class="status">Processed ${processedCount} of ${dataRows.length} rows...</div>`;
-                    } else {
-                        console.error('Batch error:', responseData);
+                let success = false;
+                retryCount = 0;
+
+                while (!success && retryCount < MAX_RETRIES) {
+                    try {
+                        uploadStatus.innerHTML = `<div class="status">Processing rows ${i + 1} to ${Math.min(i + BATCH_SIZE, dataRows.length)} of ${dataRows.length}...</div>`;
+                        
+                        const response = await fetch('https://fboyzgif8d.execute-api.us-east-1.amazonaws.com/prod/upload', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify(batchBase64)
+                        });
+                        
+                        if (response.status === 503) {
+                            retryCount++;
+                            uploadStatus.innerHTML = `<div class="status">Service busy, retry attempt ${retryCount} of ${MAX_RETRIES}...</div>`;
+                            await new Promise(resolve => setTimeout(resolve, DELAY_BETWEEN_BATCHES * 2));
+                            continue;
+                        }
+                        
+                        const responseData = await response.json();
+                        
+                        if (response.ok && responseData.results) {
+                            allResults = allResults.concat(responseData.results);
+                            processedCount += batch.length;
+                            success = true;
+                        } else {
+                            throw new Error(responseData.message || 'Unknown error');
+                        }
+                    } catch (batchError) {
+                        retryCount++;
+                        if (retryCount >= MAX_RETRIES) {
+                            console.error('Batch processing error after retries:', batchError);
+                            uploadStatus.innerHTML = `<div class="status error">Error processing rows ${i + 1} to ${Math.min(i + BATCH_SIZE, dataRows.length)}: ${batchError.message}</div>`;
+                            throw batchError;
+                        }
+                        await new Promise(resolve => setTimeout(resolve, DELAY_BETWEEN_BATCHES));
                     }
-                } catch (batchError) {
-                    console.error('Batch processing error:', batchError);
                 }
 
-                // Add a small delay between batches
-                await new Promise(resolve => setTimeout(resolve, 2000));
+                // Add delay between batches
+                await new Promise(resolve => setTimeout(resolve, DELAY_BETWEEN_BATCHES));
             }
 
             // Display all results
