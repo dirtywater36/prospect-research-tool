@@ -85,8 +85,19 @@
                     console.log('Response:', responseText);
                     
                     if (response.ok) {
-                        resultsDiv.innerHTML = '<div class="status success">File uploaded successfully! Processing...</div>';
-                    } else {
+    resultsDiv.innerHTML = '<div class="status success">File uploaded successfully to S3!</div>';
+    
+    // Optional: Add a link to download or view the file
+    const downloadSection = document.createElement('div');
+    downloadSection.innerHTML = `
+        <div class="status">
+            Your file has been uploaded. 
+            <br>
+            You can check the S3 bucket 'prospecting-input-data-9-9' to see your file.
+        </div>
+    `;
+    resultsDiv.appendChild(downloadSection);
+} else {
                         resultsDiv.innerHTML = `<div class="status error">Error: ${responseText}</div>`;
                     }
                 } catch (error) {
