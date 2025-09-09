@@ -111,42 +111,65 @@
             const file = fileInput.files[0];
             const reader = new FileReader();
 
-            reader.onload = async function(e) {
-                const base64Data = e.target.result.split(',')[1];
+           reader.onload = async function(e) {
+    const base64Data = e.target.result.split(',')[1];
 
-                try {
-                    const response = await fetch('https://fboyzgif8d.execute-api.us-east-1.amazonaws.com/prod/upload', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify(base64Data)
-                    });
+    try {
+        const response = await fetch('https://fboyzgif8d.execute-api.us-east-1.amazonaws.com/prod/upload', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(base64Data)
+        });
+        
+        const responseData = await response.json();
+        console.log('Response:', responseData);
+        
+        if (response.ok) {
+            uploadStatus.innerHTML = '<div class="status success">File processed successfully!</div>';
+            
+            // Parse the nested JSON
+            const bodyData = JSON.parse(responseData.body);
+            const researchData = JSON.parse(bodyData.ResearchData);
+            const emailData = JSON.parse(bodyData.EmailDraft);
+            
+            // Display research results
+            researchResults.innerHTML = `
+                <div style="max-height: 600px; overflow-y: auto;">
+                    <h3>Overview</h3>
+                    <p>${researchData.overview}</p>
                     
-                    const responseData = await response.json();
-                    console.log('Response:', responseData);
+                    <h3>Products & Services</h3>
+                    <p>${researchData.products}</p>
                     
-                    if (response.ok) {
-                        uploadStatus.innerHTML = '<div class="status success">File processed successfully!</div>';
-                        
-                        // Display research results
-                        researchResults.innerHTML = `
-                            <div style="max-height: 600px; overflow-y: auto;">
-                                <pre style="white-space: pre-wrap;">${JSON.stringify(responseData.research, null, 2)}</pre>
-                            </div>
-                        `;
+                    <h3>Market Position</h3>
+                    <p>${researchData.market_position}</p>
+                    
+                    <h3>Recent News</h3>
+                    <p>${researchData.recent_news}</p>
+                    
+                    <h3>Challenges & Opportunities</h3>
+                    <p>${researchData.challenges_opportunities}</p>
+                </div>
+            `;
 
-                        // Display Claude's generated email
-                        emailContent.innerHTML = `
-                            <pre style="white-space: pre-wrap;">${responseData.email}</pre>
-                        `;
-                    } else {
-                        uploadStatus.innerHTML = `<div class="status error">Error: ${responseData}</div>`;
-                    }
-                } catch (error) {
-                    console.error('Error:', error);
-                    uploadStatus.innerHTML = `<div class="status error">Error: ${error.message}</div>`;
-                }
+            // Display email content
+            emailContent.innerHTML = `
+                <div style="background-color: #f8f9fa; padding: 15px; border-radius: 4px;">
+                    <h3>Subject: ${emailData.subject_line}</h3>
+                    <pre style="white-space: pre-wrap; font-family: Arial, sans-serif;">${emailData.email_body}</pre>
+                </div>
+            `;
+        } else {
+            uploadStatus.innerHTML = `<div class="status error">Error: ${JSON.stringify(responseData)}</div>`;
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        uploadStatus.innerHTML = `<div class="status error">Error: ${error.message}</div>`;
+    }
+};
+            
             };
 
             reader.onerror = function(error) {
