@@ -95,7 +95,7 @@
     </div>
 
     <script>
-        function handleFileUpload() {
+        async function handleFileUpload() {
             const fileInput = document.getElementById('csvFile');
             const uploadStatus = document.getElementById('upload-status');
             const researchResults = document.getElementById('research-results');
@@ -111,43 +111,42 @@
             const file = fileInput.files[0];
             const reader = new FileReader();
 
-reader.onload = async function(e) {
-    const base64Data = e.target.result.split(',')[1];
+            reader.onload = async function(e) {
+                const base64Data = e.target.result.split(',')[1];
 
-    try {
-        const response = await fetch('https://fboyzgif8d.execute-api.us-east-1.amazonaws.com/prod/upload', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(base64Data)
-        });
-        
-        const responseData = await response.json();
-        console.log('Response:', responseData);
-        
-        if (response.ok) {
-            uploadStatus.innerHTML = '<div class="status success">File processed successfully!</div>';
-            
-            // Display research results
-            researchResults.innerHTML = `
-                <div style="max-height: 600px; overflow-y: auto;">
-                    <pre style="white-space: pre-wrap;">${JSON.stringify(responseData.research, null, 2)}</pre>
-                </div>
-            `;
+                try {
+                    const response = await fetch('https://fboyzgif8d.execute-api.us-east-1.amazonaws.com/prod/upload', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(base64Data)
+                    });
+                    
+                    const responseData = await response.json();
+                    console.log('Response:', responseData);
+                    
+                    if (response.ok) {
+                        uploadStatus.innerHTML = '<div class="status success">File processed successfully!</div>';
+                        
+                        // Display research results
+                        researchResults.innerHTML = `
+                            <div style="max-height: 600px; overflow-y: auto;">
+                                <pre style="white-space: pre-wrap;">${JSON.stringify(responseData.research, null, 2)}</pre>
+                            </div>
+                        `;
 
-            // Display Claude's generated email
-            emailContent.innerHTML = `
-                <pre style="white-space: pre-wrap;">${responseData.email}</pre>
-            `;
-        } else {
-            uploadStatus.innerHTML = `<div class="status error">Error: ${responseData.message}</div>`;
-        }
-    } catch (error) {
-        console.error('Error:', error);
-        uploadStatus.innerHTML = `<div class="status error">Error: ${error.message}</div>`;
-    }
-};
+                        // Display Claude's generated email
+                        emailContent.innerHTML = `
+                            <pre style="white-space: pre-wrap;">${responseData.email}</pre>
+                        `;
+                    } else {
+                        uploadStatus.innerHTML = `<div class="status error">Error: ${responseData}</div>`;
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    uploadStatus.innerHTML = `<div class="status error">Error: ${error.message}</div>`;
+                }
             };
 
             reader.onerror = function(error) {
